@@ -8,20 +8,20 @@ import (
 )
 
 const (
-	OSAny     = "*"
-	OSUnknown = "?"
-	OSWindows = "windows"
-	OSLinux   = "linux"
-	OSMac     = "mac"
+	OSAny     = OS("*")
+	OSUnknown = OS("?")
+	OSWindows = OS("windows")
+	OSLinux   = OS("linux")
+	OSMac     = OS("mac")
 
-	ArchAny     = "*"
-	ArchUnknown = "?"
-	ArchARM86   = "arm"
-	ArchARM64   = "arm64"
-	ArchX86     = "x86"
-	ArchX64     = "x64"
-	ArchPPC64   = "ppc64"
-	ArchPPC64LE = "ppc64le"
+	ArchAny     = Arch("*")
+	ArchUnknown = Arch("?")
+	ArchARM86   = Arch("arm")
+	ArchARM64   = Arch("arm64")
+	ArchX86     = Arch("x86")
+	ArchX64     = Arch("x64")
+	ArchPPC64   = Arch("ppc64")
+	ArchPPC64LE = Arch("ppc64le")
 )
 
 type OS string
