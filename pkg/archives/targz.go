@@ -12,7 +12,7 @@ import (
 )
 
 func ExtractTarGz(src string, dest string, permissions os.FileMode) error {
-	if err := os.MkdirAll(dest, permissions); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(dest, permissions); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("error creating folder for downloads: %w", err)
 	}
 
