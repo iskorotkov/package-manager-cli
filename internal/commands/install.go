@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/go-github/v39/github"
@@ -83,7 +84,7 @@ func init() {
 }
 
 func downloadAsset(client *github.Client, repo *github.Repository, asset *github.ReleaseAsset, dest string) error {
-	if err := os.MkdirAll(dest, permissions); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(filepath.Dir(dest), permissions); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("error creating folder for downloads: %w", err)
 	}
 
