@@ -17,9 +17,10 @@ import (
 
 //nolint:gofumpt
 const (
-	permissions   = 0744
-	downloadsDest = "./temp/downloads"
-	symlinkDest   = "./temp/symlinks"
+	downloadPermissions = 0644
+	binPermissions      = 0744
+	downloadsDest       = "./temp/downloads"
+	symlinkDest         = "./temp/symlinks"
 )
 
 //nolint:gochecknoinits
@@ -46,16 +47,16 @@ func init() {
 			extractDest := filepath.Join(downloadsDest, repo.GetName())
 
 			if strings.HasSuffix(asset.GetName(), ".tar.gz") {
-				if err := archives.ExtractTarGz(downloadDest, extractDest, permissions); err != nil {
+				if err := archives.ExtractTarGz(downloadDest, extractDest, downloadPermissions); err != nil {
 					return fmt.Errorf("error extracting tar.gz file: %w", err)
 				}
 			}
 
-			if err := os.MkdirAll(symlinkDest, permissions); err != nil {
+			if err := os.MkdirAll(symlinkDest, downloadPermissions); err != nil {
 				return fmt.Errorf("error creating folder '%s' for symlinks: %w", symlinkDest, err)
 			}
 
-			if err := binaries.AddSymlinks(extractDest, symlinkDest); err != nil {
+			if err := binaries.AddSymlinks(extractDest, symlinkDest, binPermissions); err != nil {
 				return fmt.Errorf("error adding package to path: %w", err)
 			}
 
@@ -103,7 +104,7 @@ func selectAsset(client *github.Client, packageName string) (*github.Repository,
 }
 
 func downloadAsset(client *github.Client, repo *github.Repository, asset *github.ReleaseAsset, dest string) error {
-	if err := os.MkdirAll(filepath.Dir(dest), permissions); err != nil && !errors.Is(err, os.ErrExist) {
+	if err := os.MkdirAll(filepath.Dir(dest), downloadPermissions); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("error creating folder for downloads: %w", err)
 	}
 

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func AddSymlinks(src, dest string) error {
+func AddSymlinks(src, dest string, permissions os.FileMode) error {
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("error reading contents of src folder: %w", err)
@@ -17,7 +17,7 @@ func AddSymlinks(src, dest string) error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if entry.Name() == "bin" {
-				if err := addSymlinksToBin(src, dest, entry); err != nil {
+				if err := addSymlinksToBin(src, dest, entry, permissions); err != nil {
 					return err
 				}
 			}
@@ -35,7 +35,7 @@ func AddSymlinks(src, dest string) error {
 			continue
 		}
 
-		if err := createSymlink(src, dest, entry); errors.Is(err, os.ErrExist) {
+		if err := createSymlink(src, dest, entry, permissions); errors.Is(err, os.ErrExist) {
 			printSymlinkExists(entry)
 		} else if err != nil {
 			return err
@@ -53,7 +53,7 @@ func shouldSkipFile(lowerName string) bool {
 	return strings.Contains(lowerName, "readme") || strings.Contains(lowerName, "license")
 }
 
-func addSymlinksToBin(src string, dest string, entry os.DirEntry) error {
+func addSymlinksToBin(src string, dest string, entry os.DirEntry, permissions os.FileMode) error {
 	binFiles, err := os.ReadDir(entry.Name())
 	if err != nil {
 		return fmt.Errorf("error reading contents of bin folder: %w", err)
@@ -64,7 +64,7 @@ func addSymlinksToBin(src string, dest string, entry os.DirEntry) error {
 			continue
 		}
 
-		if err := createSymlink(src, filepath.Join(dest, "bin"), binEntry); errors.Is(err, os.ErrExist) {
+		if err := createSymlink(src, filepath.Join(dest, "bin"), binEntry, permissions); errors.Is(err, os.ErrExist) {
 			printSymlinkExists(entry)
 		} else if err != nil {
 			return err
@@ -78,10 +78,14 @@ func printSymlinkExists(entry os.DirEntry) {
 	fmt.Printf("%s: symlink already exists", entry.Name())
 }
 
-func createSymlink(src string, dest string, entry os.DirEntry) error {
+func createSymlink(src string, dest string, entry os.DirEntry, permissions os.FileMode) error {
 	oldName, err := filepath.Abs(filepath.Join(src, entry.Name()))
 	if err != nil {
 		return fmt.Errorf("error getting abs path for src: %w", err)
+	}
+
+	if err := os.Chmod(oldName, permissions); err != nil {
+		return fmt.Errorf("error changing permissions for file '%s': %w", oldName, err)
 	}
 
 	newName := filepath.Join(dest, entry.Name())
