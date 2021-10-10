@@ -23,7 +23,34 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-  
+
+  smoke-testing:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Build and install binary
+      run: go install ./cmd/cli
+        
+    - name: Search for packages
+      run: cli search k9s
+
+    - name: Show info about package
+      run: cli info k9s
+
+    - name: Install packages one-by-one
+      run: |
+        cli install k9s
+        cli install kubectx
+        cli install buf
+        cli install legendary
+
   publish:
     runs-on: ubuntu-latest
     needs: [build]
@@ -36,34 +63,11 @@ jobs:
         go-version: 1.17
 
     - name: Build binary
-      run: go build -o pm ./cmd/cli
+      run: go build ./cmd/cli
 
     - name: Upload binary
       uses: actions/upload-artifact@v2.2.4
       with:
-        name: pm
-        path: pm
+        name: cli
+        path: cli
         if-no-files-found: error
-
-  smoke-testing:
-    runs-on: ubuntu-latest
-    needs: [publish]
-    steps:
-    - name: Download binary
-      uses: actions/download-artifact@v2.0.10
-      with:
-        name: pm
-        path: pm
-        
-    - name: Search for packages
-      run: ./pm search k9s
-
-    - name: Show info about package
-      run: ./pm info k9s
-
-    - name: Install packages one-by-one
-      run: |
-        ./pm install k9s
-        ./pm install kubectx
-        ./pm install buf
-        ./pm install legendary
