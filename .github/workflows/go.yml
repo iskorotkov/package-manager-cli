@@ -53,17 +53,17 @@ jobs:
       uses: actions/download-artifact@v2.0.10
       with:
         name: pm
-        path: /bin/pm
+        path: pm
         
     - name: Search for packages
-      run: pm search k9s
+      run: ./pm search k9s
 
     - name: Show info about package
-      run: pm info k9s
+      run: ./pm info k9s
 
     - name: Install packages one-by-one
       run: |
-        pm install k9s
-        pm install kubectx
-        pm install buf
-        pm install legendary
+        ./pm install k9s
+        ./pm install kubectx
+        ./pm install buf
+        ./pm install legendary
