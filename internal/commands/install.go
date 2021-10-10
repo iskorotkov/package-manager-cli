@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-github/v39/github"
 	"github.com/iskorotkov/package-manager-cli/internal/keys"
+	"github.com/iskorotkov/package-manager-cli/internal/metadata"
 	"github.com/iskorotkov/package-manager-cli/pkg/archives"
 	"github.com/iskorotkov/package-manager-cli/pkg/assets"
 	"github.com/iskorotkov/package-manager-cli/pkg/binaries"
@@ -27,32 +28,39 @@ func init() {
 
 			client := github.NewClient(nil)
 
-			repo, asset, err := selectAsset(client, packageName)
+			asset, err := selectAsset(client, packageName)
 			if err != nil {
 				return err
 			}
 
-			downloadPath := filepath.Join(keys.DownloadsPath, asset.GetName())
-			if err := downloadAsset(client, repo, asset, downloadPath); err != nil {
+			downloadPath := filepath.Join(keys.DownloadsPath, asset.Asset.GetName())
+			if err := downloadAsset(client, asset, downloadPath); err != nil {
 				return err
 			}
 
 			defer cleanupFile(downloadPath)
 
-			packagePath := filepath.Join(keys.PackagesPath, repo.GetName())
+			packagePath := filepath.Join(keys.PackagesPath, asset.Repository.GetName())
 
-			if strings.HasSuffix(asset.GetName(), ".tar.gz") {
+			if strings.HasSuffix(asset.Asset.GetName(), ".tar.gz") {
 				if err := archives.ExtractTarGz(downloadPath, packagePath, keys.PackagesPermissions); err != nil {
 					return fmt.Errorf("error extracting tar.gz file: %w", err)
 				}
 			} else {
-				if err := moveFileToPackageFolder(downloadPath, packagePath, keys.PackagesPermissions, repo); err != nil {
+				err := moveFileToPackageFolder(downloadPath, packagePath, keys.PackagesPermissions, asset.Repository)
+				if err != nil {
 					return err
 				}
 			}
 
-			if err := binaries.AddSymlinks(packagePath, keys.SymlinksPath, keys.SymlinksPermissions); err != nil {
+			symlinks, err := binaries.AddSymlinks(packagePath, keys.SymlinksPath, keys.SymlinksPermissions)
+			if err != nil {
 				return fmt.Errorf("error adding package to path: %w", err)
+			}
+
+			err = metadata.Save(packagePath, keys.MetadataPath, asset, symlinks, keys.MetadataPermissions)
+			if err != nil {
+				return fmt.Errorf("error saving package metadata: %w", err)
 			}
 
 			return nil
@@ -83,14 +91,14 @@ func moveFileToPackageFolder(src string, dest string, permissions os.FileMode, r
 	return nil
 }
 
-func selectAsset(client *github.Client, packageName string) (*github.Repository, *github.ReleaseAsset, error) {
+func selectAsset(client *github.Client, packageName string) (assets.AssetData, error) {
 	result, _, err := client.Search.Repositories(context.Background(), packageName, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error searching repositories: %w", err)
+		return assets.AssetData{}, fmt.Errorf("error searching repositories: %w", err)
 	}
 
 	if len(result.Repositories) == 0 {
-		return nil, nil, fmt.Errorf("no results")
+		return assets.AssetData{}, fmt.Errorf("no results")
 	}
 
 	repo := result.Repositories[0]
@@ -102,30 +110,34 @@ func selectAsset(client *github.Client, packageName string) (*github.Repository,
 		nil,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting releases: %w", err)
+		return assets.AssetData{}, fmt.Errorf("error getting releases: %w", err)
 	}
 
 	if len(releases) == 0 {
-		return nil, nil, fmt.Errorf("no releases available")
+		return assets.AssetData{}, fmt.Errorf("no releases available")
 	}
 
 	release := releases[0]
 
 	asset, err := assets.ForPlatform(release.Assets, getPlatforms())
 	if err != nil {
-		return nil, nil, fmt.Errorf("no assets available: %w", err)
+		return assets.AssetData{}, fmt.Errorf("no assets available: %w", err)
 	}
 
-	return repo, asset, nil
+	return assets.AssetData{
+		Repository: repo,
+		Release:    release,
+		Asset:      asset,
+	}, nil
 }
 
-func downloadAsset(client *github.Client, repo *github.Repository, asset *github.ReleaseAsset, dest string) error {
+func downloadAsset(client *github.Client, asset assets.AssetData, dest string) error {
 	if err := os.MkdirAll(filepath.Dir(dest), keys.DownloadsPermissions); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("error creating folder for downloads: %w", err)
 	}
 
 	downloader := assets.NewDownloader(client)
-	if err := downloader.Download(context.Background(), repo, asset, dest); err != nil {
+	if err := downloader.Download(context.Background(), asset.Repository, asset.Asset, dest); err != nil {
 		return fmt.Errorf("error downloading file: %w", err)
 	}
 

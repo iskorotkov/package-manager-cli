@@ -6,18 +6,6 @@ import (
 	"strings"
 )
 
-type Version struct {
-	Major  int
-	Minor  *int
-	Patch  *int
-	Suffix string
-}
-
-type Package struct {
-	Owner, Repo string
-	Version     *Version
-}
-
 //nolint:gomnd
 //goland:noinspection GoUnusedExportedFunction
 func ParsePackage(name string) (Package, error) {
@@ -58,10 +46,11 @@ func ParsePackage(name string) (Package, error) {
 	}, nil
 }
 
-//nolint:gomnd
-func ParseVersion(version string) (*Version, error) {
+func ParseVersion(version string) (Version, error) {
+	rawVersion := Version{Value: version} //nolint:exhaustivestruct
+
 	if version == "" {
-		return nil, nil
+		return rawVersion, nil
 	}
 
 	trimmed := strings.TrimPrefix(version, "v")
@@ -76,33 +65,36 @@ func ParseVersion(version string) (*Version, error) {
 
 	major, err := strconv.Atoi(mainParts[0])
 	if err != nil {
-		return nil, fmt.Errorf("error parsing major version: %w", err)
+		return rawVersion, fmt.Errorf("error parsing major version: %w", err)
 	}
 
 	var minor, patch *int
 
-	if len(mainParts) >= 2 {
+	if len(mainParts) >= 2 { //nolint:gomnd
 		i, err := strconv.Atoi(mainParts[1])
 		if err != nil {
-			return nil, fmt.Errorf("error parsing minor version: %w", err)
+			return rawVersion, fmt.Errorf("error parsing minor version: %w", err)
 		}
 
 		minor = &i
 	}
 
-	if len(mainParts) >= 2 {
+	if len(mainParts) >= 2 { //nolint:gomnd
 		i, err := strconv.Atoi(mainParts[1])
 		if err != nil {
-			return nil, fmt.Errorf("error parsing patch version: %w", err)
+			return rawVersion, fmt.Errorf("error parsing patch version: %w", err)
 		}
 
 		patch = &i
 	}
 
-	return &Version{
-		Major:  major,
-		Minor:  minor,
-		Patch:  patch,
-		Suffix: suffix,
+	return Version{
+		Value: version,
+		Components: &Components{
+			Major:  major,
+			Minor:  minor,
+			Patch:  patch,
+			Suffix: suffix,
+		},
 	}, nil
 }

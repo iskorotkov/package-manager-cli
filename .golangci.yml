@@ -8,3 +8,4 @@ linters:
     - scopelint
     - forbidigo
     - goerr113
+    - godox
