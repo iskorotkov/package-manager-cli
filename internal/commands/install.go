@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,30 +32,26 @@ func init() {
 				return err
 			}
 
-			downloadDest := filepath.Join(keys.DownloadsPath, asset.GetName())
-			if err := downloadAsset(client, repo, asset, downloadDest); err != nil {
+			downloadPath := filepath.Join(keys.DownloadsPath, asset.GetName())
+			if err := downloadAsset(client, repo, asset, downloadPath); err != nil {
 				return err
 			}
 
-			defer cleanup(downloadDest)
+			defer cleanupFile(downloadPath)
 
-			extractDest := filepath.Join(keys.DownloadsPath, repo.GetName())
+			packagePath := filepath.Join(keys.PackagesPath, repo.GetName())
 
 			if strings.HasSuffix(asset.GetName(), ".tar.gz") {
-				if err := archives.ExtractTarGz(downloadDest, extractDest, keys.DownloadsPermissions); err != nil {
+				if err := archives.ExtractTarGz(downloadPath, packagePath, keys.PackagesPermissions); err != nil {
 					return fmt.Errorf("error extracting tar.gz file: %w", err)
 				}
 			} else {
-				if err := moveFileToPackageFolder(downloadDest, extractDest, repo); err != nil {
+				if err := moveFileToPackageFolder(downloadPath, packagePath, keys.PackagesPermissions, repo); err != nil {
 					return err
 				}
 			}
 
-			if err := os.MkdirAll(keys.SymlinksPath, keys.DownloadsPermissions); err != nil {
-				return fmt.Errorf("error creating folder '%s' for symlinks: %w", keys.SymlinksPath, err)
-			}
-
-			if err := binaries.AddSymlinks(extractDest, keys.SymlinksPath, keys.SymlinksPermissions); err != nil {
+			if err := binaries.AddSymlinks(packagePath, keys.SymlinksPath, keys.SymlinksPermissions); err != nil {
 				return fmt.Errorf("error adding package to path: %w", err)
 			}
 
@@ -67,31 +62,22 @@ func init() {
 	rootCmd.AddCommand(installCmd)
 }
 
-func cleanup(downloadDest string) {
-	func() {
-		if err := os.Remove(downloadDest); err != nil {
-			fmt.Printf("error removing downloaded file '%s': %v\n", downloadDest, err)
-		}
-	}()
+// cleanupFile removes file if it still exists.
+// It is useful to call after package installation,
+// and it will ignore cases where downloaded file was moved somewhere else.
+func cleanupFile(file string) {
+	if err := os.Remove(file); err != nil && !errors.Is(err, os.ErrNotExist) {
+		fmt.Printf("error removing downloaded file '%s': %v\n", file, err)
+	}
 }
 
-func moveFileToPackageFolder(src string, dest string, repo *github.Repository) error {
-	if err := os.Mkdir(dest, keys.DownloadsPermissions); err != nil {
-		return fmt.Errorf("error creating folder for package: %w", err)
+func moveFileToPackageFolder(src string, dest string, permissions os.FileMode, repo *github.Repository) error {
+	if err := os.MkdirAll(dest, permissions); err != nil {
+		return fmt.Errorf("error creating package folder: %w", err)
 	}
 
-	from, err := os.Open(src)
-	if err != nil {
-		return fmt.Errorf("error opening downloaded file: %w", err)
-	}
-
-	to, err := os.Create(filepath.Join(dest, repo.GetName()))
-	if err != nil {
-		return fmt.Errorf("error creating a new file in dest folder: %w", err)
-	}
-
-	if _, err := io.Copy(to, from); err != nil {
-		return fmt.Errorf("error copying downloaded file in package folder: %w", err)
+	if err := os.Rename(src, filepath.Join(dest, repo.GetName())); err != nil {
+		return fmt.Errorf("error moving file to package folder: %w", err)
 	}
 
 	return nil
@@ -151,5 +137,6 @@ func getPlatforms() []assets.Platform {
 		{OS: assets.OSLinux, Arch: assets.ArchX64},
 		{OS: assets.OSLinux, Arch: assets.ArchX86},
 		{OS: assets.OSLinux, Arch: assets.ArchUnknown},
+		{OS: assets.OSUnknown, Arch: assets.ArchUnknown},
 	}
 }

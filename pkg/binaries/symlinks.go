@@ -9,33 +9,37 @@ import (
 )
 
 func AddSymlinks(src, dest string, permissions os.FileMode) error {
+	if err := os.MkdirAll(dest, permissions); err != nil {
+		return fmt.Errorf("error creating folder '%s' for symlinks: %w", dest, err)
+	}
+
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("error reading contents of src folder: %w", err)
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() {
-			if entry.Name() == "bin" {
-				if err := addSymlinksToBin(src, dest, entry, permissions); err != nil {
-					return err
-				}
-			}
-
-			continue
+		if err := analyzeSourceEntry(src, dest, permissions, entry); err != nil {
+			return err
 		}
+	}
 
-		ext := filepath.Ext(entry.Name())
-		if shouldSkipExtension(ext) {
-			continue
+	return nil
+}
+
+func analyzeSourceEntry(src string, dest string, permissions os.FileMode, entry os.DirEntry) error {
+	ext := filepath.Ext(entry.Name())
+	lowerName := strings.ToLower(entry.Name())
+
+	switch {
+	case entry.IsDir() && entry.Name() == "bin":
+		if err := addSymlinksToBin(src, dest, entry, permissions); err != nil {
+			return err
 		}
-
-		lowerName := strings.ToLower(entry.Name())
-		if shouldSkipFile(lowerName) {
-			continue
-		}
-
-		if err := createSymlink(src, dest, entry, permissions); errors.Is(err, os.ErrExist) {
+	case entry.IsDir(), shouldSkipExtension(ext), shouldSkipFile(lowerName):
+	default:
+		err := createSymlink(filepath.Join(src, entry.Name()), filepath.Join(dest, entry.Name()), permissions)
+		if errors.Is(err, os.ErrExist) {
 			printSymlinkExists(entry)
 		} else if err != nil {
 			return err
@@ -53,19 +57,20 @@ func shouldSkipFile(lowerName string) bool {
 	return strings.Contains(lowerName, "readme") || strings.Contains(lowerName, "license")
 }
 
-func addSymlinksToBin(src string, dest string, entry os.DirEntry, permissions os.FileMode) error {
-	binFiles, err := os.ReadDir(entry.Name())
+func addSymlinksToBin(src string, dest string, dir os.DirEntry, permissions os.FileMode) error {
+	binFiles, err := os.ReadDir(dir.Name())
 	if err != nil {
 		return fmt.Errorf("error reading contents of bin folder: %w", err)
 	}
 
-	for _, binEntry := range binFiles {
-		if binEntry.IsDir() {
+	for _, entry := range binFiles {
+		if entry.IsDir() {
 			continue
 		}
 
-		if err := createSymlink(src, filepath.Join(dest, "bin"), binEntry, permissions); errors.Is(err, os.ErrExist) {
-			printSymlinkExists(entry)
+		err := createSymlink(filepath.Join(src, entry.Name()), filepath.Join(dest, "bin", entry.Name()), permissions)
+		if errors.Is(err, os.ErrExist) {
+			printSymlinkExists(dir)
 		} else if err != nil {
 			return err
 		}
@@ -78,22 +83,20 @@ func printSymlinkExists(entry os.DirEntry) {
 	fmt.Printf("%s: symlink already exists", entry.Name())
 }
 
-func createSymlink(src string, dest string, entry os.DirEntry, permissions os.FileMode) error {
-	oldName, err := filepath.Abs(filepath.Join(src, entry.Name()))
+func createSymlink(src string, dest string, permissions os.FileMode) error {
+	src, err := filepath.Abs(src)
 	if err != nil {
 		return fmt.Errorf("error getting abs path for src: %w", err)
 	}
 
-	if err := os.Chmod(oldName, permissions); err != nil {
-		return fmt.Errorf("error changing permissions for file '%s': %w", oldName, err)
+	if err := os.Chmod(src, permissions); err != nil {
+		return fmt.Errorf("error changing permissions for file '%s': %w", src, err)
 	}
 
-	newName := filepath.Join(dest, entry.Name())
-
-	if err := os.Symlink(oldName, newName); errors.Is(err, os.ErrExist) {
-		return fmt.Errorf("symlink '%s' already exists: %w", newName, err)
+	if err := os.Symlink(src, dest); errors.Is(err, os.ErrExist) {
+		return fmt.Errorf("symlink '%s' already exists: %w", dest, err)
 	} else if err != nil {
-		return fmt.Errorf("error creating symlink from '%s' to '%s': %w", oldName, newName, err)
+		return fmt.Errorf("error creating symlink from '%s' to '%s': %w", src, dest, err)
 	}
 
 	return nil

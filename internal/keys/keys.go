@@ -9,8 +9,10 @@ import (
 //nolint:gochecknoglobals,gomnd,gofumpt
 var (
 	DownloadsPath = env.Get("PM_DOWNLOADS_PATH", "./local/share/package-manager/downloads")
+	PackagesPath  = env.Get("PM_PACKAGES_PATH", "./local/share/package-manager/packages")
 	SymlinksPath  = env.Get("PM_SYMLINKS_PATH", "./local/bin")
 
 	DownloadsPermissions = os.FileMode(env.GetInt("PM_DOWNLOADS_PERMISSIONS", 0744))
+	PackagesPermissions  = os.FileMode(env.GetInt("PM_PACKAGES_PERMISSIONS", 0744))
 	SymlinksPermissions  = os.FileMode(env.GetInt("PM_SYMLINKS_PERMISSIONS", 0744))
 )
