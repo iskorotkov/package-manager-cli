@@ -50,6 +50,14 @@ jobs:
         cli install kubectx
         cli install buf
         cli install legendary
+        
+    - name: Check if packages were installed and linked correctly
+      run: |
+        export PATH=$PATH:~/.local/bin
+        buf --version
+        kubectx --version
+        k9s version
+        legendary --version
 
   publish:
     runs-on: ubuntu-latest
