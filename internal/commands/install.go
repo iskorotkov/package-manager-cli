@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,11 +38,17 @@ func init() {
 				return err
 			}
 
+			defer cleanup(downloadDest)
+
 			extractDest := filepath.Join(keys.DownloadsPath, repo.GetName())
 
 			if strings.HasSuffix(asset.GetName(), ".tar.gz") {
 				if err := archives.ExtractTarGz(downloadDest, extractDest, keys.DownloadsPermissions); err != nil {
 					return fmt.Errorf("error extracting tar.gz file: %w", err)
+				}
+			} else {
+				if err := moveFileToPackageFolder(downloadDest, extractDest, repo); err != nil {
+					return err
 				}
 			}
 
@@ -58,6 +65,36 @@ func init() {
 	}
 
 	rootCmd.AddCommand(installCmd)
+}
+
+func cleanup(downloadDest string) {
+	func() {
+		if err := os.Remove(downloadDest); err != nil {
+			fmt.Printf("error removing downloaded file '%s': %v\n", downloadDest, err)
+		}
+	}()
+}
+
+func moveFileToPackageFolder(src string, dest string, repo *github.Repository) error {
+	if err := os.Mkdir(dest, keys.DownloadsPermissions); err != nil {
+		return fmt.Errorf("error creating folder for package: %w", err)
+	}
+
+	from, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("error opening downloaded file: %w", err)
+	}
+
+	to, err := os.Create(filepath.Join(dest, repo.GetName()))
+	if err != nil {
+		return fmt.Errorf("error creating a new file in dest folder: %w", err)
+	}
+
+	if _, err := io.Copy(to, from); err != nil {
+		return fmt.Errorf("error copying downloaded file in package folder: %w", err)
+	}
+
+	return nil
 }
 
 func selectAsset(client *github.Client, packageName string) (*github.Repository, *github.ReleaseAsset, error) {
