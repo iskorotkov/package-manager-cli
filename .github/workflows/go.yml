@@ -53,11 +53,10 @@ jobs:
         
     - name: Check if packages were installed and linked correctly
       run: |
-        export PATH=$PATH:~/.local/bin
-        buf --version
-        kubectx --version
-        k9s version
-        legendary --version
+        ~/.local/bin/buf --version
+        ~/.local/bin/kubectx --version
+        ~/.local/bin/k9s version
+        ~/.local/bin/legendary --version
 
   publish:
     runs-on: ubuntu-latest
