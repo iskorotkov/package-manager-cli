@@ -46,7 +46,7 @@ jobs:
 
     - name: Install packages one-by-one
       env:
-        PM_PACKAGES_PATH: ./packages
+        PM_SYMLINKS_PATH: ./binaries
       run: |
         cli install k9s
         cli install kubectx
@@ -55,12 +55,12 @@ jobs:
         
     - name: Check if packages were installed and linked correctly
       env:
-        PM_PACKAGES_PATH: ./packages
+        PM_SYMLINKS_PATH: ./binaries
       run: |
-        $PM_PACKAGES_PATH/buf --version
-        $PM_PACKAGES_PATH/kubectx --version
-        $PM_PACKAGES_PATH/k9s version
-        $PM_PACKAGES_PATH/legendary --version
+        $PM_SYMLINKS_PATH/buf --version
+        $PM_SYMLINKS_PATH/kubectx --version
+        $PM_SYMLINKS_PATH/k9s version
+        $PM_SYMLINKS_PATH/legendary --version
 
   publish:
     runs-on: ubuntu-latest
