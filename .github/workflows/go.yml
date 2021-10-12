@@ -57,10 +57,10 @@ jobs:
       env:
         PM_PACKAGES_PATH: ./packages
       run: |
-        $(PM_PACKAGES_PATH)/buf --version
-        $(PM_PACKAGES_PATH)/kubectx --version
-        $(PM_PACKAGES_PATH)/k9s version
-        $(PM_PACKAGES_PATH)/legendary --version
+        $PM_PACKAGES_PATH/buf --version
+        $PM_PACKAGES_PATH/kubectx --version
+        $PM_PACKAGES_PATH/k9s version
+        $PM_PACKAGES_PATH/legendary --version
 
   publish:
     runs-on: ubuntu-latest
