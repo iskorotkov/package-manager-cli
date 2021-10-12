@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,60 +15,103 @@ import (
 	"github.com/iskorotkov/package-manager-cli/pkg/archives"
 	"github.com/iskorotkov/package-manager-cli/pkg/assets"
 	"github.com/iskorotkov/package-manager-cli/pkg/binaries"
+	"github.com/iskorotkov/package-manager-cli/pkg/xlog"
 	"github.com/spf13/cobra"
 )
 
 //nolint:gochecknoinits
 func init() {
-	installCmd := &cobra.Command{ //nolint:exhaustivestruct
+	installCmd := wrapCommand(&cobra.Command{ //nolint:exhaustivestruct
 		Use:   "install",
 		Short: "install package",
 		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			packageName := args[0]
-
-			client := github.NewClient(nil)
-
-			asset, err := selectAsset(client, packageName)
-			if err != nil {
-				return err
-			}
-
-			downloadPath := filepath.Join(keys.DownloadsPath, asset.Asset.GetName())
-			if err := downloadAsset(client, asset, downloadPath); err != nil {
-				return err
-			}
-
-			defer cleanupFile(downloadPath)
-
-			packagePath := filepath.Join(keys.PackagesPath, asset.Repository.GetName())
-
-			if strings.HasSuffix(asset.Asset.GetName(), ".tar.gz") {
-				if err := archives.ExtractTarGz(downloadPath, packagePath, keys.PackagesPermissions); err != nil {
-					return fmt.Errorf("error extracting tar.gz file: %w", err)
-				}
-			} else {
-				err := moveFileToPackageFolder(downloadPath, packagePath, keys.PackagesPermissions, asset.Repository)
-				if err != nil {
-					return err
-				}
-			}
-
-			symlinks, err := binaries.AddSymlinks(packagePath, keys.SymlinksPath, keys.SymlinksPermissions)
-			if err != nil {
-				return fmt.Errorf("error adding package to path: %w", err)
-			}
-
-			err = metadata.Save(packagePath, keys.MetadataPath, asset, symlinks, keys.MetadataPermissions)
-			if err != nil {
-				return fmt.Errorf("error saving package metadata: %w", err)
-			}
-
-			return nil
-		},
-	}
+		RunE:  install,
+	})
 
 	rootCmd.AddCommand(installCmd)
+}
+
+func install(_ *cobra.Command, args []string) error {
+	packageName := args[0]
+
+	xlog.Push(packageName)
+	defer xlog.Pop()
+
+	log.Printf("package name: %s", packageName)
+
+	client := github.NewClient(nil)
+
+	asset, err := selectAsset(client, packageName)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("selected repo: %s", asset.Repository.GetFullName())
+	log.Printf("selected release: %s", asset.Release.GetTagName())
+	log.Printf("selected asset: %s", asset.Asset.GetName())
+
+	downloadPath := filepath.Join(keys.DownloadsPath, asset.Asset.GetName())
+
+	log.Printf("downloading package to: %s", downloadPath)
+
+	if err := downloadAsset(client, asset, downloadPath); err != nil {
+		return err
+	}
+
+	defer cleanupFile(downloadPath)
+
+	log.Printf("downloaded to: %s", downloadPath)
+
+	packagePath := filepath.Join(keys.PackagesPath, asset.Repository.GetName())
+
+	log.Printf("moving package to: %s", packagePath)
+
+	if err := moveToPackageFolder(asset, downloadPath, packagePath); err != nil {
+		return err
+	}
+
+	log.Printf("creating symlinks at: %s", keys.SymlinksPath)
+
+	symlinks, err := binaries.AddSymlinks(packagePath, keys.SymlinksPath, keys.SymlinksPermissions)
+	if err != nil {
+		return fmt.Errorf("error adding package to path: %w", err)
+	}
+
+	log.Printf("saved symlinks: %+v", symlinks)
+
+	log.Printf("saving metadata to: %s", keys.MetadataPath)
+
+	err = metadata.Save(packagePath, keys.MetadataPath, asset, symlinks, keys.MetadataPermissions)
+	if err != nil {
+		return fmt.Errorf("error saving package metadata: %w", err)
+	}
+
+	return nil
+}
+
+func moveToPackageFolder(asset assets.AssetData, downloadPath string, packagePath string) error {
+	if strings.HasSuffix(asset.Asset.GetName(), ".tar.gz") {
+		xlog.Push("archive")
+		defer xlog.Pop()
+
+		log.Printf("extracting .tar.gz archive")
+
+		if err := archives.ExtractTarGz(downloadPath, packagePath, keys.PackagesPermissions); err != nil {
+			return fmt.Errorf("error extracting tar.gz file: %w", err)
+		}
+	} else {
+		xlog.Push("binary")
+		defer xlog.Pop()
+
+		log.Printf("moving binary file to package folder")
+
+		err := moveFileToPackageFolder(downloadPath, packagePath, keys.PackagesPermissions, asset.Repository)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // cleanupFile removes file if it still exists.
