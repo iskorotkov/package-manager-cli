@@ -43,3 +43,17 @@ func Save(src, dest string, asset assets.AssetData, symlinks []string, permissio
 
 	return nil
 }
+
+func Read(src string) (packages.Metadata, error) {
+	b, err := os.ReadFile(src)
+	if err != nil {
+		return packages.Metadata{}, fmt.Errorf("error reading file with metadata: %w", err)
+	}
+
+	var m packages.Metadata
+	if err := json.Unmarshal(b, &m); err != nil {
+		return packages.Metadata{}, fmt.Errorf("error unmarshaling package metadata")
+	}
+
+	return m, nil
+}

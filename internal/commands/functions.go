@@ -2,8 +2,10 @@ package commands
 
 import (
 	"log"
+	"os"
 
 	"github.com/iskorotkov/package-manager-cli/pkg/xlog"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
@@ -30,4 +32,14 @@ func wrapCommandFunc(name string, f commandFunc) commandFunc {
 
 		return err
 	}
+}
+
+func createTable() table.Writer {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+
+	return t
 }

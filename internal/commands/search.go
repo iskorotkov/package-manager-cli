@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/google/go-github/v39/github"
 	"github.com/iskorotkov/package-manager-cli/pkg/xlog"
@@ -49,12 +48,7 @@ func search(_ *cobra.Command, args []string) error {
 }
 
 func printReposList(result *github.RepositoriesSearchResult) {
-	t := table.NewWriter()
-
-	t.Style().Options.DrawBorder = false
-	t.Style().Options.SeparateColumns = false
-
-	t.SetOutputMirror(os.Stdout)
+	t := createTable()
 	t.AppendHeader(table.Row{"repo", "stars", "description"})
 
 	for _, repo := range result.Repositories[:10] {
