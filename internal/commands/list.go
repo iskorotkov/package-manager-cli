@@ -18,14 +18,14 @@ import (
 
 //nolint:gochecknoinits
 func init() {
-	infoCmd := wrapCommand(&cobra.Command{ //nolint:exhaustivestruct
+	listCmd := wrapCommand(&cobra.Command{ //nolint:exhaustivestruct
 		Use:   "list",
 		Short: "list installed packages",
 		Args:  cobra.NoArgs,
 		RunE:  list,
 	})
 
-	rootCmd.AddCommand(infoCmd)
+	rootCmd.AddCommand(listCmd)
 }
 
 func list(_ *cobra.Command, _ []string) error {

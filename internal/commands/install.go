@@ -86,6 +86,8 @@ func install(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("error saving package metadata: %w", err)
 	}
 
+	fmt.Printf("installed package '%s'", asset.Repository.GetFullName())
+
 	return nil
 }
 

@@ -48,10 +48,10 @@ jobs:
         env:
           PM_SYMLINKS_PATH: ./binaries
         run: |
-          cli install k9s
-          cli install buf
-          cli install kubectx
-          cli install legendary
+          cli install k9s | grep "installed package 'derailed/k9s'"
+          cli install buf | grep "installed package 'bufbuild/buf'"
+          cli install kubectx | grep "installed package 'ahmetb/kubectx'"
+          cli install legendary | grep "installed package 'derrod/legendary'"
 
       - name: Check if packages were installed and linked correctly
         env:
@@ -68,6 +68,20 @@ jobs:
           cli list | grep buf
           cli list | grep kubectx
           cli list | grep legendary
+
+      - name: Uninstall previously installed packages
+        run: |
+          cli uninstall k9s | grep "uninstalled package 'derailed/k9s'"
+          cli uninstall buf | grep "uninstalled package 'bufbuild/buf'"
+          cli uninstall kubectx | grep "uninstalled package 'ahmetb/kubectx'"
+          cli uninstall legendary | grep "uninstalled package 'derrod/legendary'"
+
+      - name: Uninstall packages that are not installed
+        run: |
+          cli uninstall k9s | grep "package 'k9s' isn't installed"
+          cli uninstall buf | grep "package 'buf' isn't installed"
+          cli uninstall kubectx | grep "package 'kubectx' isn't installed"
+          cli uninstall legendary | grep "package 'legendary' isn't installed"
 
   publish:
     runs-on: ubuntu-latest
