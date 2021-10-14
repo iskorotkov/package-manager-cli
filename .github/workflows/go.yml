@@ -51,6 +51,7 @@ jobs:
           cli install k9s | grep "installed package 'derailed/k9s'"
           cli install buf | grep "installed package 'bufbuild/buf'"
           cli install kubectx | grep "installed package 'ahmetb/kubectx'"
+          cli install minikube | grep | grep "installed package 'kubernetes/minikube'"
           cli install legendary | grep "installed package 'derrod/legendary'"
 
       - name: Check if packages were installed and linked correctly
@@ -60,6 +61,7 @@ jobs:
           $PM_SYMLINKS_PATH/k9s version
           $PM_SYMLINKS_PATH/buf --version
           $PM_SYMLINKS_PATH/kubectx --version
+          $PM_SYMLINKS_PATH/minikube version
           $PM_SYMLINKS_PATH/legendary --version
 
       - name: List installed packages
@@ -67,6 +69,7 @@ jobs:
           cli list | grep k9s
           cli list | grep buf
           cli list | grep kubectx
+          cli list | grep minikube
           cli list | grep legendary
 
       - name: Uninstall previously installed packages
@@ -74,6 +77,7 @@ jobs:
           cli uninstall k9s | grep "uninstalled package 'derailed/k9s'"
           cli uninstall buf | grep "uninstalled package 'bufbuild/buf'"
           cli uninstall kubectx | grep "uninstalled package 'ahmetb/kubectx'"
+          cli uninstall minikube | grep | grep "uninstalled package 'kubernetes/minikube'"
           cli uninstall legendary | grep "uninstalled package 'derrod/legendary'"
 
       - name: Uninstall packages that are not installed
@@ -81,6 +85,7 @@ jobs:
           cli uninstall k9s | grep "package 'k9s' isn't installed"
           cli uninstall buf | grep "package 'buf' isn't installed"
           cli uninstall kubectx | grep "package 'kubectx' isn't installed"
+          cli uninstall minikube | grep | grep "package 'kubernetes/minikube' isn't installed"
           cli uninstall legendary | grep "package 'legendary' isn't installed"
 
   publish:
