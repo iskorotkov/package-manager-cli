@@ -10,7 +10,9 @@ All you have to do is to use `pmcli install minikube`, and it's done!
 
 ## Installation
 
-Download `pmcli` from releases page and place it in `~/.local/share/bin`.
+1. Download `pmcli` from releases page and place it in `~/.local/share/bin` folder.
+2. Run `chmod +x ~/.local/share/bin/pmcli` to make file executable.
+3. Run `pmcli` to make sure everything is working.
 
 NOTE: Make sure that `~/.local/share/bin` is added to `PATH` environment variable.
 
