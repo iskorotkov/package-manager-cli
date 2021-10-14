@@ -85,7 +85,7 @@ jobs:
           cli uninstall k9s | grep "package 'k9s' isn't installed"
           cli uninstall buf | grep "package 'buf' isn't installed"
           cli uninstall kubectx | grep "package 'kubectx' isn't installed"
-          cli uninstall minikube | grep "package 'kubernetes/minikube' isn't installed"
+          cli uninstall minikube | grep "package 'minikube' isn't installed"
           cli uninstall legendary | grep "package 'legendary' isn't installed"
 
   publish:
