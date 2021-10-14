@@ -88,7 +88,8 @@ func selectArch(name string) Arch {
 		return ArchPPC64LE
 	case strings.Contains(name, "ppc64"):
 		return ArchPPC64
-	case strings.Contains(name, "x64"), strings.Contains(name, "x86_64"), strings.Contains(name, "x86-64"):
+	case strings.Contains(name, "x64"), strings.Contains(name, "x86_64"),
+		strings.Contains(name, "x86-64"), strings.Contains(name, "amd64"):
 		return ArchX64
 	case strings.Contains(name, "x86"):
 		return ArchX86
